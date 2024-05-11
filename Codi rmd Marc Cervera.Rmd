@@ -1,0 +1,11 @@
+---
+title: "Models predictius"
+author: "Marc Cervera Rosell"
+date: "2024-05-24"
+output: pdf_document
+---
+
+```{r}
+setRepositories(ind=2) # Per descarregar paquets de CRAN
+```
+
