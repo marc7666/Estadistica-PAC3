@@ -1,5 +1,5 @@
 ---
-title: "Models predictius"
+title: "Activitat 3: Models predictius"
 author: "Marc Cervera Rosell"
 date: "2024-05-24"
 output: pdf_document
@@ -8,4 +8,121 @@ output: pdf_document
 ```{r}
 setRepositories(ind=2) # Per descarregar paquets de CRAN
 ```
+
+# 1. Regressió lineal
+
+## 1.1 Preparació de les dades
+
+```{r}
+tryCatch({
+  data <- read.csv("Casas.csv", header = TRUE)
+  print("Fitxer llegit correctament")
+}, error = function(e){
+  cat("ERROR en el moment de llegir el fitxer:",conditionMessage(e), "\n")
+})
+```
+
+```{r}
+any(is.na(data))
+```
+
+El fitxer no conté valors NA
+Canvi de peus quadrats a metres quadrats i de dòlars a euros:
+
+```{r}
+for (i in seq_along(data$sqft_living)) {
+  data$sqft_living[i] <- data$sqft_living[i] * 0.0929
+  data$sqft_lot[i] <- data$sqft_lot[i] * 0.0929
+  data$sqft_living15[i] <- data$sqft_living15[i] * 0.0929
+  data$sqft_lot15[i] <- data$sqft_lot15[i] * 0.0929
+  data$sqft_basement[i] <- data$sqft_basement[i] * 0.0929
+  data$price[i] <- data$price[i] * 0.93
+}
+```
+
+La funció _seq_along()_ ens permet iterar sobre la columna indicada i, atès que, totes les columnes tenen la mateixa longitud no hi ha problema a posar com a argument una columna o una altra.
+
+```{r}
+columns <- names(data)
+type <- sapply(data, class)
+for (i in seq_along(columns)) {
+  cat("La columna", columns[i], "és de tipus", type[i], "\n")
+}
+```
+
+Després d'analitzar els tipus de les variables del fitxer es determina realitzar un canvi de tipus de les següents variables:
+
+- _bathrooms_ -> Actualment és de tipus numèric, però com mai podrem tenir mig lavabo o 0.75 lavabos, es decideix realitzar un canvi a tipus _integer_.
+
+- _floors_ -> Actualment és de tipus numèric, però com en el cas dels lavabos, no podem tenir mitja planta o 0.6 plantes, en conseqüència, es decideix fer un canvi a tipus _integer_.
+
+```{r}
+data <- transform(data,
+                  bathrooms = as.integer(bathrooms),
+                  floors = as.integer(floors))
+```
+
+```{r}
+columns <- names(data)
+type <- sapply(data, class)
+for (i in seq_along(columns)) {
+  cat("La columna", columns[i], "és de tipus", type[i], "\n")
+}
+```
+
+Com s'observa, després d'aplicar la funció _transform()_ s'han modificat els tipus.
+
+## 1.2 Estudi de correlacií lineal
+
+Considerant que s'han d'excloure dues de les variables del fitxer en el moment del càlcul de la correlació lineal, cal seleccionar, primer, aquelles columnes que sí que s'usaran en el càlcul.
+
+```{r}
+subset_estudi_correlacio <- data[, c("price", "bedrooms", "bathrooms", "sqft_living",
+                                     "sqft_lot", "floors", "waterfront", "view",
+                                     "condition", "sqft_basement", "yr_built",
+                                     "yr_renovated", "sqft_living15", "sqft_lot15")]
+```
+
+```{r}
+matriu_correlacio <- cor(subset_estudi_correlacio)
+indexs <- which(matriu_correlacio > 0.2, arr.ind = TRUE)
+indexs_ordenats <- indexs[order(matriu_correlacio[indexs], decreasing = TRUE), ]
+files <- rownames(matriu_correlacio)[indexs_ordenats[,1]]
+columnes <- colnames(matriu_correlacio)[indexs_ordenats[,2]]
+matriu_noms <- cbind(files, columnes, matriu_correlacio[indexs_ordenats])
+colnames(matriu_noms) <- c("Nom variable", "Nom variable", "Coef. Correlació")
+print(matriu_noms)
+```
+
+Tenint en compte que solament s'han mostrat aquells coeficients de correlació lineal majors a 0.2, es pot assegurar que la correlació lineal de les variables és positiva, és a dir, quan una de les dues variables augmenta el seu valor, la segona variable també augmenta el seu valor de manera proporcional.
+
+En aquest cas d'estudi, el llindar s'ha establert en 0.2, per tant, aquelles parelles de variables amb un coeficient de correlació lineal proper a 0.2 tindran una correlació dèbil i aquelles parelles amb un coeficient de correlació lineal proper a 1 (o 1 en el cas del càlcul de la correlació lineal amb elles mateixes) tindran una forta correlació.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
