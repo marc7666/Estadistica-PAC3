@@ -90,22 +90,73 @@ indexs_ordenats <- indexs[order(matriu_correlacio[indexs], decreasing = TRUE), ]
 files <- rownames(matriu_correlacio)[indexs_ordenats[,1]]
 columnes <- colnames(matriu_correlacio)[indexs_ordenats[,2]]
 matriu_noms <- cbind(files, columnes, matriu_correlacio[indexs_ordenats])
-colnames(matriu_noms) <- c("Nom variable", "Nom variable", "Coef. Correlació")
-print(matriu_noms)
+matriu_final <- matrix(matriu_noms, ncol = 3, byrow = FALSE)
+colnames(matriu_final) <- c("Nom variable", "Nom variable", "Coef. Correlació")
+print(matriu_final)
 ```
 
 Tenint en compte que solament s'han mostrat aquells coeficients de correlació lineal majors a 0.2, es pot assegurar que la correlació lineal de les variables és positiva, és a dir, quan una de les dues variables augmenta el seu valor, la segona variable també augmenta el seu valor de manera proporcional.
 
 En aquest cas d'estudi, el llindar s'ha establert en 0.2, per tant, aquelles parelles de variables amb un coeficient de correlació lineal proper a 0.2 tindran una correlació dèbil i aquelles parelles amb un coeficient de correlació lineal proper a 1 (o 1 en el cas del càlcul de la correlació lineal amb elles mateixes) tindran una forta correlació.
 
+## 1.3 Generació dels conjunts d'entrenament i de test
+
+```{r}
+set.seed(123)
+indexs_training <- sample(nrow(subset_estudi_correlacio), 0.8 *
+                            nrow(subset_estudi_correlacio))
+set_training <- subset_estudi_correlacio[indexs_training, ]
+set_test <- subset_estudi_correlacio[-indexs_training, ]
+```
+
+## 1.4 Estimació del model de regressió lineal
+
+L'ajust d'un model de regressió lineal utilitzant el mètode de mínims quadrats ordinaris es du a terme, popularment, amb la funció _lm()_.
+
+```{r}
+model <- lm(price ~ ., data = set_training)
+```
+
+La variable _price_, es la variable anomenada "de resposta" atès que és la variable que està a l'esquerra de la titlla ( _virgulilla_ en castellà).
+
+### 1.4.1
+
+```{r}
+prediccions <- predict(model, newdata = set_test)
+```
 
 
+```{r}
+coeficient_r <- 1 - (sum((set_test$price - prediccions)^2) /
+                       sum((set_test$price - mean(set_test$price))^2))
+cat("Coeficient R quadrat:",coeficient_r,"\n")
+fiv_model_ajustat <- 1 / (1 - coeficient_r)
+cat("FIV del model ajustat:",fiv_model_ajustat)
+```
 
+Per calcular els valors dels FIV per cada una de les variables predictores del model, cal ajustar un model de regressió lineal incloent totes les variables predictores menys una. És a dir s'han de calcular els valors FIV de excloent a cada model una de les variables predictores del model original.
 
+```{r}
+valors_fiv <- data.frame(variable_exclosa = character(ncol(set_training) - 1),
+                         fiv = numeric(ncol(set_training) - 1))
+for (i in 2:ncol(set_training)) {
+  training_aux <- set_training
+  columna <- colnames(set_training)[i]
+  training_aux <- training_aux[, -i]
+  model_sense_variable_i <- lm(price ~ ., data = training_aux)
+  prediccions_aux <- predict(model_sense_variable_i, newdata = set_test)
+  coeficient_r_aux <- 1 - (sum((set_test$price - prediccions_aux)^2) /
+                             sum((set_test$price - mean(set_test$price))^2))
+  fiv <- 1 / (1 - coeficient_r_aux)
+  valors_fiv[i, "variable_exclosa"] <- columna
+  valors_fiv[i, "fiv"] <- fiv
+}
+print(valors_fiv[-1, ])
+```
 
+Considerant el FIV del model ajustat i els FIVs dels models individuals, es determina que existeix colinealitat entre les variables. És a dir, l'existència de colinealitat suggereix que les variables predictores estan correlacionades. Per tant, sota la premissa de la seva rellevància teòrica, és a dir, totes les variables incloses en el model són necessàries per a obtenir tots els aspectes importants del fenomen d'estudi (explicar el preu de l'habitatge en funció de les variables seleccionades), i tot i la colinealitat, no es considera excloure cap variable del model.
 
-
-
+## 1.5 Diagnosi del model
 
 
 
