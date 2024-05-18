@@ -224,7 +224,9 @@ Com el RMSE està calculat en el preu dels habitatges (variable depenent), es po
 
 # 2 Regressió logística
 
-## 2.1
+## 2.1 i 2.2
+
+Per evitar repetir el proces de canvi de tipus dos cops un cop fet el split, s'ajunten els dos apartats.
 
 ```{r}
 data$price_re <- ifelse(data$price_eur < 500000, 0, 1) # data$price < 500000 ? 0 : 1
@@ -235,6 +237,39 @@ subset_estudi_correlacio_2 <- data[, c("price_re", "bedrooms", "bathrooms", "m2_
                                      "m2_lot", "floors", "waterfront", "view",
                                      "condition", "m2_basement", "yr_built",
                                      "yr_renovated", "m2_living15", "m2_lot15")]
+```
+
+Com la variable _price_eur_ ha estat codificada en la variable _price_re_ i, a més a més, en l'exercici 2.2 s'especifica que la variable de preus sense codificar s'ha d'eliminar, en el subset d'estudi 2 es treuen els preus sense codificar.
+
+```{r}
+obtencio_tipus <- function(dades){
+  columns_aux <- names(dades)
+  type_aux <- sapply(dades, class)
+  for (i in seq_along(columns_aux)) {
+    cat("La columna", columns_aux[i], "és de tipus", type_aux[i], "\n")
+  }
+}
+```
+
+```{r}
+tipus_abans_conversio <- obtencio_tipus(subset_estudi_correlacio_2)
+```
+
+```{r}
+subset_estudi_correlacio_2 <- transform(subset_estudi_correlacio_2,
+                      price_re = as.factor(price_re),
+                      view = as.factor(view),
+                      waterfront = as.factor(waterfront))
+```
+
+
+```{r}
+tipus_despres_conversio <- obtencio_tipus(subset_estudi_correlacio_2)
+```
+
+S'observa el canvi de tipus després d'aplicar la funció _transform()_
+
+```{r}
 set.seed(123)
 indexs_training_2 <- sample(nrow(subset_estudi_correlacio_2), 0.8 *
                             nrow(subset_estudi_correlacio_2))
@@ -242,30 +277,78 @@ training2 <- subset_estudi_correlacio_2[indexs_training_2, ]
 testing2 <- subset_estudi_correlacio_2[-indexs_training_2, ]
 ```
 
-Com la variable _price_eur_ ha estat codificada en la variable _price_re_ i, a més a més, en l'exercici 2.2 s'especifica que la variable de preus sense codificar s'ha d'eliminar, en el subset d'estudi 2 es treuen els preus sense codificar
+```{r}
+model_log <- glm(price_re ~ ., data = training2, family = binomial)
+```
 
+Atès que la variable dependent solament pot prendre dos valors (1 i 0), s'ajusta el model de regressió logística a un model de regressió logística binomial.
 
+```{r}
+resum_model <- summary(model_log)
+```
 
+```{r}
+possibles_insignificants <- resum_model$coefficients[resum_model$coefficients[, 4]
+                                                     >= 0.05, ]
+print(possibles_insignificants)
+```
 
+Atès que aquestes variables tenen un valor p major a 0.05, es podria considerar que no són significatives i que, per tant, podrien ser eliminades del model, però considerant el que representa cada variable (accés a un llac, superfície de soterrani i any de renovació), no es considera la seva eliminació. La raó de mantenir les tres variables és la seva importància teòrica en l'efecte que suposen en el preu de l'habitatge. És a dir, una casa amb accés a un llac, serà més cara que una casa en un terreny sec (desitjabilitat). Una casa amb soterrani serà més cara que una casa sense soterrani (o un soterrani més petit), ja que el soterrani són metres quadrats habitables. Cal esmentar, que el soterrani, de la mateixa manera que pot augmentar el preu, també el pot fer disminuir. Per exemple, un soterrani gran i acabat (preparat per fer-hi vida) pot fer augmentar el valor de la casa. Per contra, un soterrani més petit o que no estigui preparat per fer-hi vida pot fer decaure el valor de la propietat. Finalment, l'any de renovació també afecta al preu, pel fet que serà més cara una casa renovada l'any 2012, per exemple, que una casa renovada l'any 1990 o que no s'hagi renovat mai.
 
+```{r}
+model_final <- model_log
+```
 
+## 2.3
 
+```{r}
+odd_ratio <- exp(coefficients(model_final))
+```
 
+```{r}
+intervals <- exp(confint(model_final))
+```
+```{r}
+taula_odd <- data.frame(
+  Odd_ratio = odd_ratio,
+  Limits = intervals
+)
+print(taula_odd)
+```
 
+S'observa que les variables _waterfront_, _m2_basement_ i _yr_renovated_, contenen el valor 1 en els seus intervals de confiança, per tant, no podem assegurar si són factors de risc o de protecció, atès que un OR d'1 significa que no hi ha associació entre les variables.
 
+Per altra part, es veu que hi ha variables amb un OR major a la unitat. Aquest fet implica que són factors de risc. En aquest model, els factors de risc són:
 
+- _Intercept_
 
+- _bathrooms_
 
+- _m2_living_
 
+- _m2_lot_
 
+- _floors_
 
+- _view1_
 
+- _view2_
 
+- _view3_
 
+- _view4_
 
+- _condition_
 
+- _m2_living15_
 
+Finalment, també s'observen variables amb un Odds-ratio inferior a 1 (factors de protecció):
 
+- _bedrooms_
+
+- _yr_built_
+
+- _m2_lot15_
 
 
 
