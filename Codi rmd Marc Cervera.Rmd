@@ -52,7 +52,7 @@ for (i in seq_along(columns)) {
 
 Després d'analitzar els tipus de les variables del fitxer es determina realitzar un canvi de tipus de les següents variables:
 
-- _bathrooms_ -> Actualment és de tipus numèric, però com mai podrem tenir mig lavabo o 0.75 lavabos, es decideix realitzar un canvi a tipus _integer_.
+- _bathrooms_ -> Actualment és de tipus numèric, però com mai podrem tenir 0.25 o 0.59 lavabos, es decideix realitzar un canvi a tipus _integer_.
 
 - _floors_ -> Actualment és de tipus numèric, però com en el cas dels lavabos, no podem tenir mitja planta o 0.6 plantes, en conseqüència, es decideix fer un canvi a tipus _integer_.
 
@@ -122,13 +122,17 @@ La variable _price_, es la variable anomenada "de resposta" atès que és la var
 ### 1.4.1
 
 ```{r}
-prediccions <- predict(model, newdata = set_test)
+summary(model)
+```
+
+```{r}
+prediccions <- predict(model, newdata = set_training)
 ```
 
 
 ```{r}
-coeficient_r <- 1 - (sum((set_test$price - prediccions)^2) /
-                       sum((set_test$price - mean(set_test$price))^2))
+coeficient_r <- 1 - (sum((set_training$price - prediccions)^2) /
+                       sum((set_training$price - mean(set_training$price))^2))
 cat("Coeficient R quadrat:",coeficient_r,"\n")
 fiv_model_ajustat <- 1 / (1 - coeficient_r)
 cat("FIV del model ajustat:",fiv_model_ajustat)
@@ -144,9 +148,9 @@ for (i in 2:ncol(set_training)) {
   columna <- colnames(set_training)[i]
   training_aux <- training_aux[, -i]
   model_sense_variable_i <- lm(price ~ ., data = training_aux)
-  prediccions_aux <- predict(model_sense_variable_i, newdata = set_test)
-  coeficient_r_aux <- 1 - (sum((set_test$price - prediccions_aux)^2) /
-                             sum((set_test$price - mean(set_test$price))^2))
+  prediccions_aux <- predict(model_sense_variable_i, newdata = training_aux)
+  coeficient_r_aux <- 1 - (sum((training_aux$price - prediccions_aux)^2) /
+                             sum((training_aux$price - mean(training_aux$price))^2))
   fiv <- 1 / (1 - coeficient_r_aux)
   valors_fiv[i, "variable_exclosa"] <- columna
   valors_fiv[i, "fiv"] <- fiv
@@ -158,20 +162,58 @@ Considerant el FIV del model ajustat i els FIVs dels models individuals, es dete
 
 ## 1.5 Diagnosi del model
 
+Per calcular els residus cal restar els valors observats i els valors reals. Per obtenir els valors predits hi ha dues opcions: la primera utilitzar una crida a la funció _predict()_ (utilitzada més amunt per al càlcul del valor de R quadrat) i posteriorment realitzar la resta, o utilitzar la funció _residuals()_ que ja retorna directament el càlcul fet.
 
+```{r}
+valors_observats <- set_training$price
+residus <- valors_observats - prediccions
+```
 
+```{r}
+hist(residus, breaks = 100, main = "Histograma amb els residus del model",
+     xlab = "Residus", ylab = "Frqüència")
+```
 
+S'observa que l'histograma s'assembla a una campana al voltant del valor 0. Aquest fet indica que els residus del model segueixen una distribució normal.
 
+L'esmentada forma de campana al voltant del 0, és un indicador de què el model fa bones prediccions.
 
+```{r}
+plot(fitted(model), residus, main = "Gràfic d'ajustats enfront dels residus",
+     xlab = "Valors ajustats", ylab = "Residus")
+abline(h = 0, col = "red")
+```
 
+En el gràfic de residus enfront dels valors ajustats, es pot observar, que el model presenta certs problemes de dispersió irregular, és a dir, la variància dels residus augmenta a mesura que ho fan els valors ajustats (heteroscedasticitat).
 
+```{r}
+qqnorm(residus)
+qqline(residus, col = "blue")
+```
 
+S'observa que el gràfic QQ presenta dues corbes a les cues. Aquestes curvatures són indicadores d'asimetries, és a dir, llocs on la distribució de les dades no és normal. Atès que la cua dreta és més llarga que l'esquerra es pot assegurar que hi ha una asimetria positiva (quantitat major de valors atípics en l'extrem superior).
 
+## 1.6 Predicció del model
 
+```{r}
+prediccions_finals <- predict(model, newdata = set_test)
+plot(set_test$price, prediccions_finals, main = "Gràfic de prediccions finals",
+     xlab = "Valors observats", ylab = "Prediccions")
+abline(0, 1, col = "blue") 
+```
 
+```{r}
+sumatori <- 0
+for (i in 1:length(prediccions_finals)) {
+  sumatori <- sumatori + ((set_test$price[i] - prediccions_finals[[i]])^2)
+}
+rmse <- sqrt(sumatori / nrow(set_test))
+cat("Valor RMSE:",rmse,"\n")
+mitjana_preus <- mean(set_test$price)
+cat("Mitjana del preu dels habitatges:",mitjana_preus)
+```
 
-
-
+Com el RMSE està calculat en el preu dels habitatges (variable depenent), es pot interpretar el resultat del RMSE comparant amb el valor mitjà del preu dels habitatges. S'observa que el RMSE és significativament menor que el preu mitjà de les habitatges, per tant, es conclou que el model té bona precisió.
 
 
 
