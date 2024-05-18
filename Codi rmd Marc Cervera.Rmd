@@ -42,6 +42,8 @@ for (i in seq_along(data$sqft_living)) {
 
 La funció _seq_along()_ ens permet iterar sobre la columna indicada i, atès que, totes les columnes tenen la mateixa longitud no hi ha problema a posar com a argument una columna o una altra.
 
+**IMPORTANT! ELS NOMS DE LES COLUMNES NO CANVIEN, PERÒ SÍ ELS SEUS VALORS, PER TANT, ENCARA QUE LES COLUMNES ES DIGUIN "sqft_[...]", ELS VALORS NO SON PEUS SINÓ METRES! EN EL CAS DE LA COLUMNA DE PREUS, ELS VALORS CORRESPONEN A EUROS I NO A DÒLARS!**
+
 ```{r}
 columns <- names(data)
 type <- sapply(data, class)
@@ -52,13 +54,12 @@ for (i in seq_along(columns)) {
 
 Després d'analitzar els tipus de les variables del fitxer es determina realitzar un canvi de tipus de les següents variables:
 
-- _bathrooms_ -> Actualment és de tipus numèric, però com mai podrem tenir 0.25 o 0.59 lavabos, es decideix realitzar un canvi a tipus _integer_.
+- _bathrooms_ -> Actualment és de tipus numèric, i no es canviarà atès que si s'observa [**l'apartat de discusions del dataset**](https://www.kaggle.com/datasets/harlfoxem/housesalesprediction/discussion/207885), es podrà veure el significat dels decimals. Per veure la web del dataset, clicar sobre el text en negreta.
 
-- _floors_ -> Actualment és de tipus numèric, però com en el cas dels lavabos, no podem tenir mitja planta o 0.6 plantes, en conseqüència, es decideix fer un canvi a tipus _integer_.
+- _floors_ -> Actualment és de tipus numèric. En aquest cas, no s'ha trobat cap explicació per als decimals d'aquesta variable, per tant es decideix fer el canvi a _integer_.
 
 ```{r}
 data <- transform(data,
-                  bathrooms = as.integer(bathrooms),
                   floors = as.integer(floors))
 ```
 
@@ -72,7 +73,7 @@ for (i in seq_along(columns)) {
 
 Com s'observa, després d'aplicar la funció _transform()_ s'han modificat els tipus.
 
-## 1.2 Estudi de correlacií lineal
+## 1.2 Estudi de correlació lineal
 
 Considerant que s'han d'excloure dues de les variables del fitxer en el moment del càlcul de la correlació lineal, cal seleccionar, primer, aquelles columnes que sí que s'usaran en el càlcul.
 
@@ -213,7 +214,7 @@ mitjana_preus <- mean(set_test$price)
 cat("Mitjana del preu dels habitatges:",mitjana_preus)
 ```
 
-Com el RMSE està calculat en el preu dels habitatges (variable depenent), es pot interpretar el resultat del RMSE comparant amb el valor mitjà del preu dels habitatges. S'observa que el RMSE és significativament menor que el preu mitjà de les habitatges, per tant, es conclou que el model té bona precisió.
+Com el RMSE està calculat en el preu dels habitatges (variable depenent), es pot interpretar el resultat del RMSE comparant amb el valor mitjà del preu dels habitatges. S'observa que el RMSE és significativament menor que el preu mitjà dels habitatges, per tant, es conclou que el model té bona precisió.
 
 
 
