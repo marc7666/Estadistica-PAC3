@@ -27,6 +27,7 @@ any(is.na(data))
 ```
 
 El fitxer no conté valors NA
+
 Canvi de peus quadrats a metres quadrats i de dòlars a euros:
 
 ```{r}
@@ -42,7 +43,16 @@ for (i in seq_along(data$sqft_living)) {
 
 La funció _seq_along()_ ens permet iterar sobre la columna indicada i, atès que, totes les columnes tenen la mateixa longitud no hi ha problema a posar com a argument una columna o una altra.
 
-**IMPORTANT! ELS NOMS DE LES COLUMNES NO CANVIEN, PERÒ SÍ ELS SEUS VALORS, PER TANT, ENCARA QUE LES COLUMNES ES DIGUIN "sqft_[...]", ELS VALORS NO SON PEUS SINÓ METRES! EN EL CAS DE LA COLUMNA DE PREUS, ELS VALORS CORRESPONEN A EUROS I NO A DÒLARS!**
+```{r}
+# Canvi de noms de les columnes afectades per les conversions monetàries i
+# per les conversions del sistema imperial al sistema mètric
+names(data)[names(data) == "price"] <- "price_eur"
+names(data)[names(data) == "sqft_living"] <- "m2_living"
+names(data)[names(data) == "sqft_lot"] <- "m2_lot"
+names(data)[names(data) == "sqft_living15"] <- "m2_living15"
+names(data)[names(data) == "sqft_lot15"] <- "m2_lot15"
+names(data)[names(data) == "sqft_basement"] <- "m2_basement"
+```
 
 ```{r}
 columns <- names(data)
@@ -56,7 +66,7 @@ Després d'analitzar els tipus de les variables del fitxer es determina realitza
 
 - _bathrooms_ -> Actualment és de tipus numèric, i no es canviarà atès que si s'observa [**l'apartat de discusions del dataset**](https://www.kaggle.com/datasets/harlfoxem/housesalesprediction/discussion/207885), es podrà veure el significat dels decimals. Per veure la web del dataset, clicar sobre el text en negreta.
 
-- _floors_ -> Actualment és de tipus numèric. En aquest cas, no s'ha trobat cap explicació per als decimals d'aquesta variable, per tant es decideix fer el canvi a _integer_.
+- _floors_ -> Actualment és de tipus numèric. En aquest cas, no s'ha trobat cap explicació per als decimals d'aquesta variable, per tant es decideix fer el canvi a _integer_ sota la lògica de que no podem tenir mitja planta o 0.64 plantes.
 
 ```{r}
 data <- transform(data,
@@ -78,10 +88,10 @@ Com s'observa, després d'aplicar la funció _transform()_ s'han modificat els t
 Considerant que s'han d'excloure dues de les variables del fitxer en el moment del càlcul de la correlació lineal, cal seleccionar, primer, aquelles columnes que sí que s'usaran en el càlcul.
 
 ```{r}
-subset_estudi_correlacio <- data[, c("price", "bedrooms", "bathrooms", "sqft_living",
-                                     "sqft_lot", "floors", "waterfront", "view",
-                                     "condition", "sqft_basement", "yr_built",
-                                     "yr_renovated", "sqft_living15", "sqft_lot15")]
+subset_estudi_correlacio <- data[, c("price_eur", "bedrooms", "bathrooms", "m2_living",
+                                     "m2_lot", "floors", "waterfront", "view",
+                                     "condition", "m2_basement", "yr_built",
+                                     "yr_renovated", "m2_living15", "m2_lot15")]
 ```
 
 ```{r}
@@ -115,16 +125,12 @@ set_test <- subset_estudi_correlacio[-indexs_training, ]
 L'ajust d'un model de regressió lineal utilitzant el mètode de mínims quadrats ordinaris es du a terme, popularment, amb la funció _lm()_.
 
 ```{r}
-model <- lm(price ~ ., data = set_training)
+model <- lm(price_eur ~ ., data = set_training)
 ```
 
-La variable _price_, es la variable anomenada "de resposta" atès que és la variable que està a l'esquerra de la titlla ( _virgulilla_ en castellà).
+La variable _price_eur_, es la variable anomenada "de resposta" atès que és la variable que està a l'esquerra de la titlla ( _virgulilla_ en castellà).
 
 ### 1.4.1
-
-```{r}
-summary(model)
-```
 
 ```{r}
 prediccions <- predict(model, newdata = set_training)
@@ -132,8 +138,8 @@ prediccions <- predict(model, newdata = set_training)
 
 
 ```{r}
-coeficient_r <- 1 - (sum((set_training$price - prediccions)^2) /
-                       sum((set_training$price - mean(set_training$price))^2))
+coeficient_r <- 1 - (sum((set_training$price_eur - prediccions)^2) /
+                       sum((set_training$price_eur - mean(set_training$price_eur))^2))
 cat("Coeficient R quadrat:",coeficient_r,"\n")
 fiv_model_ajustat <- 1 / (1 - coeficient_r)
 cat("FIV del model ajustat:",fiv_model_ajustat)
@@ -148,10 +154,10 @@ for (i in 2:ncol(set_training)) {
   training_aux <- set_training
   columna <- colnames(set_training)[i]
   training_aux <- training_aux[, -i]
-  model_sense_variable_i <- lm(price ~ ., data = training_aux)
+  model_sense_variable_i <- lm(price_eur ~ ., data = training_aux)
   prediccions_aux <- predict(model_sense_variable_i, newdata = training_aux)
-  coeficient_r_aux <- 1 - (sum((training_aux$price - prediccions_aux)^2) /
-                             sum((training_aux$price - mean(training_aux$price))^2))
+  coeficient_r_aux <- 1 - (sum((training_aux$price_eur - prediccions_aux)^2) /
+                             sum((training_aux$price_eur - mean(training_aux$price))^2))
   fiv <- 1 / (1 - coeficient_r_aux)
   valors_fiv[i, "variable_exclosa"] <- columna
   valors_fiv[i, "fiv"] <- fiv
@@ -166,7 +172,7 @@ Considerant el FIV del model ajustat i els FIVs dels models individuals, es dete
 Per calcular els residus cal restar els valors observats i els valors reals. Per obtenir els valors predits hi ha dues opcions: la primera utilitzar una crida a la funció _predict()_ (utilitzada més amunt per al càlcul del valor de R quadrat) i posteriorment realitzar la resta, o utilitzar la funció _residuals()_ que ja retorna directament el càlcul fet.
 
 ```{r}
-valors_observats <- set_training$price
+valors_observats <- set_training$price_eur
 residus <- valors_observats - prediccions
 ```
 
@@ -198,7 +204,7 @@ S'observa que el gràfic QQ presenta dues corbes a les cues. Aquestes curvatures
 
 ```{r}
 prediccions_finals <- predict(model, newdata = set_test)
-plot(set_test$price, prediccions_finals, main = "Gràfic de prediccions finals",
+plot(set_test$price_eur, prediccions_finals, main = "Gràfic de prediccions finals",
      xlab = "Valors observats", ylab = "Prediccions")
 abline(0, 1, col = "blue") 
 ```
@@ -206,15 +212,78 @@ abline(0, 1, col = "blue")
 ```{r}
 sumatori <- 0
 for (i in 1:length(prediccions_finals)) {
-  sumatori <- sumatori + ((set_test$price[i] - prediccions_finals[[i]])^2)
+  sumatori <- sumatori + ((set_test$price_eur[i] - prediccions_finals[[i]])^2)
 }
 rmse <- sqrt(sumatori / nrow(set_test))
 cat("Valor RMSE:",rmse,"\n")
-mitjana_preus <- mean(set_test$price)
+mitjana_preus <- mean(set_test$price_eur)
 cat("Mitjana del preu dels habitatges:",mitjana_preus)
 ```
 
 Com el RMSE està calculat en el preu dels habitatges (variable depenent), es pot interpretar el resultat del RMSE comparant amb el valor mitjà del preu dels habitatges. S'observa que el RMSE és significativament menor que el preu mitjà dels habitatges, per tant, es conclou que el model té bona precisió.
+
+# 2 Regressió logística
+
+## 2.1
+
+```{r}
+data$price_re <- ifelse(data$price_eur < 500000, 0, 1) # data$price < 500000 ? 0 : 1
+```
+
+```{r}
+subset_estudi_correlacio_2 <- data[, c("price_re", "bedrooms", "bathrooms", "m2_living",
+                                     "m2_lot", "floors", "waterfront", "view",
+                                     "condition", "m2_basement", "yr_built",
+                                     "yr_renovated", "m2_living15", "m2_lot15")]
+set.seed(123)
+indexs_training_2 <- sample(nrow(subset_estudi_correlacio_2), 0.8 *
+                            nrow(subset_estudi_correlacio_2))
+training2 <- subset_estudi_correlacio_2[indexs_training_2, ]
+testing2 <- subset_estudi_correlacio_2[-indexs_training_2, ]
+```
+
+Com la variable _price_eur_ ha estat codificada en la variable _price_re_ i, a més a més, en l'exercici 2.2 s'especifica que la variable de preus sense codificar s'ha d'eliminar, en el subset d'estudi 2 es treuen els preus sense codificar
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
