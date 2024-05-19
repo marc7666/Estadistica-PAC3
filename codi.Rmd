@@ -284,16 +284,10 @@ model_log <- glm(price_re ~ ., data = training2, family = binomial)
 Atès que la variable dependent solament pot prendre dos valors (1 i 0), s'ajusta el model de regressió logística a un model de regressió logística binomial.
 
 ```{r}
-resum_model <- summary(model_log)
+summary(model_log)
 ```
 
-```{r}
-possibles_insignificants <- resum_model$coefficients[resum_model$coefficients[, 4]
-                                                     >= 0.05, ]
-print(possibles_insignificants)
-```
-
-Atès que aquestes variables tenen un valor p major a 0.05, es podria considerar que no són significatives i que, per tant, podrien ser eliminades del model, però considerant el que representa cada variable (accés a un llac, superfície de soterrani i any de renovació), no es considera la seva eliminació. La raó de mantenir les tres variables és la seva importància teòrica en l'efecte que suposen en el preu de l'habitatge. És a dir, una casa amb accés a un llac, serà més cara que una casa en un terreny sec (desitjabilitat). Una casa amb soterrani serà més cara que una casa sense soterrani (o un soterrani més petit), ja que el soterrani són metres quadrats habitables. Cal esmentar, que el soterrani, de la mateixa manera que pot augmentar el preu, també el pot fer disminuir. Per exemple, un soterrani gran i acabat (preparat per fer-hi vida) pot fer augmentar el valor de la casa. Per contra, un soterrani més petit o que no estigui preparat per fer-hi vida pot fer decaure el valor de la propietat. Finalment, l'any de renovació també afecta al preu, pel fet que serà més cara una casa renovada l'any 2012, per exemple, que una casa renovada l'any 1990 o que no s'hagi renovat mai.
+Atès que les variables _waterfront_, _m2_basement_ i _yr_renovated_ tenen un valor p major a 0.05, es podria considerar que no són significatives i que, per tant, podrien ser eliminades del model, però considerant el que representa cada variable (accés a un llac, superfície de soterrani i any de renovació), no es considera la seva eliminació. La raó de mantenir les tres variables és la seva importància teòrica en l'efecte que suposen en el preu de l'habitatge. És a dir, una casa amb accés a un llac, serà més cara que una casa en un terreny sec (desitjabilitat). Una casa amb soterrani serà més cara que una casa sense soterrani (o un soterrani més petit), ja que el soterrani són metres quadrats habitables. Cal esmentar, que el soterrani, de la mateixa manera que pot augmentar el preu, també el pot fer disminuir. Per exemple, un soterrani gran i acabat (preparat per fer-hi vida) pot fer augmentar el valor de la casa. Per contra, un soterrani més petit o que no estigui preparat per fer-hi vida pot fer decaure el valor de la propietat. Finalment, l'any de renovació també afecta al preu, pel fet que serà més cara una casa renovada l'any 2012, per exemple, que una casa renovada l'any 1990 o que no s'hagi renovat mai.
 
 ```{r}
 model_final <- model_log
@@ -350,21 +344,127 @@ Finalment, també s'observen variables amb un Odds-ratio inferior a 1 (factors d
 
 - _m2_lot15_
 
+## 2.4 Matriu de confusió
+
+```{r}
+prediccions_model_final <- predict(model_final, newdata = testing2,
+                                   type = "response")
+classificar_prediccions <- ifelse(prediccions_model_final >= 0.5, 1, 0)
+matriu_confusio <- table(Valor_predit = classificar_prediccions,
+                         Valor_real = testing2$price_re)
+```
+
+```{r}
+print(matriu_confusio)
+```
+
+Els valors de la matriu de confusió tenen la següent explicació:
+
+- Quadrant superior esquerra: són els vertaders negatius. És a dir, el valor predit és 0 i el valor real també és 0.
+
+- Quadrant superior dret: són els falsos negatius. És a dir, el model prediu un 0, però el valor real és un 1.
+
+- Quadrant inferior esquerra: són els falsos positius. És a dir, el model prediu un 1, però el valor real és un 0.
+
+- Quadrant inferior dret: són els vertaders positius. És a dir, el valor predit pel model és 1 i el valor real és 1.
+
+```{r}
+vertaders_negatius <- matriu_confusio[1, 1] # Predit = real = 0
+falsos_negatius <- matriu_confusio[1, 2] # Predit = 0; real = 1
+falsos_positius <- matriu_confusio[2, 1] # Predit = 1; real = 0
+vertaders_positius <- matriu_confusio[2, 2] # Predit = real = 1
+sensibilitat <- vertaders_positius / (vertaders_positius + falsos_negatius)
+especificitat <- vertaders_negatius / (vertaders_negatius + falsos_positius)
+cat("Sensibilitat:",sensibilitat*100,"%\n")
+cat("Especificitat:",especificitat*100,"%")
+```
+
+Es pot observar que el model té una alta especificitat, la qual cosa implica que és bo detectant els casos negatius. En altres paraules, el model detecta correctament el 89.00657% dels casos en els quals els habitatges tenen un preu inferior a 500000 euros.
+
+Pel que fa a la sensibilitat del model, el raonament és paregut. És a dir, el model és capaç de predir correctament el 65.36278% dels casos en els quals els habitatges tenen un preu igual o superior a 500000 euros.
+
+## 2.5
+
+```{r}
+prediccio_individual <- predict(model_final, newdata = training2[3, ], type = "response")
+cat("Probabilitat de que l'habitatge de la tercera fila tingui un preu superior a 
+      500000 euros:",prediccio_individual*100,"%")
+```
+
+S'observa que l'habitatge de la tercera fila de _training2_, té una probabilitat del 81.7%, aproximadament, de tenir un preu superior a 500000 euros.
+
+## 2.6
+
+### A
+
+La _devianza_ nul·la representa amb quina eficàcia la variable de resposta es prediu mitjançant un model que inclou totes les variables independents.
+
+```{r}
+# logLik -> Càlcul de la log likelihood function
+devianza_residual <- -2 * logLik(model_final)
+cat("Devianza residual:",devianza_residual[1])
+```
+
+La _devianza_ nul·la representa amb quina eficàcia la variable de resposta es prediu mitjançant un model que inclou només el punt d'intersecció de la línia de regressió amb l'eix Y (intercept).
+
+```{r}
+model_nul <- model_log <- glm(price_re ~ 1, data = training2, family = binomial)
+devianza_nula <- -2 * logLik(model_nul)
+cat("Devianza nul·la:",devianza_nula[1])
+```
+
+Es pot observar que la _devianza_ residual és menor a la _devianza_ nul·la, i com es sabut, per a que un model sigui considerat "bo", la _devianza_ residual ha de ser menor que la nul·la, per tant, atesa la inferioritat de la _devianza_ residual, és conclou que el model és bo.
 
 
+### B
+
+```{r}
+chi_quadrat <- devianza_nula - devianza_residual
+cat("Valor de Chi quadrat:", chi_quadrat)
+```
+
+Els graus de llibertat del model es defineixen com el nombre d'observacions d'aquest menys el nombre de variables que estan sent estimades.
+
+El nombre d'observacions correspon al nombre de files del conjunt de dades usat per entrenar el model i el nombre de variables que estan sent estimades. Per obtenir les variables hi ha dues opcions: la primera és imprimir el _summary()_ i comptar totes les variables que allí apareixen (inclòs l' _intercept_). La segona opció és a través del mateix model. Com s'observa a continuació, per obtenir el nombre de variables esmentat, cal obtenir el nombre de coeficients del model.
+
+```{r}
+#Graus de llibertat = total files - variables sent estimades
+graus_llibertat_model <- nrow(training2) - length(model_final$coefficients)
+cat("Nombre de graus de llibertat del model:",graus_llibertat_model)
+```
+
+```{r}
+probabilitat <- pchisq(chi_quadrat, df = graus_llibertat_model, lower.tail = FALSE)
+cat("Probabilitat associada a l'estadístic de contrast:",probabilitat)
+```
+Tot i que el valor Chi-quadrat és bastant alt (8374.604), el valor de la probabilitat d'1 suggereix que no hi ha suficient evidència per a poder afirmar amb seguretat que les prediccions que es puguin fer amb el model ajustat són millors que les que es puguin fer amb el model nul (model ajustat solament amb _intercept_).
+
+## 2.7
+
+```{r}
+chooseCRANmirror(ind = 1)
+install.packages("pROC")
+```
+
+```{r}
+library(pROC)
+```
 
 
+```{r}
+corba_roc <- roc(testing2$price_re, prediccions_model_final)
+```
+
+```{r}
+plot(corba_roc)
+```
 
 
+```{r}
+auc(corba_roc)
+```
 
-
-
-
-
-
-
-
-
+Es pot observar que 0.8 <= AUROC <= 0.9, per tant, i segons vist en els materials docents, una AUROC de 0.8669 implica que el model es capaç de discriminar molt be les classes.
 
 
 
