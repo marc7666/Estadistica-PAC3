@@ -466,7 +466,19 @@ auc(corba_roc)
 
 Es pot observar que 0.8 <= AUROC <= 0.9, per tant, i segons vist en els materials docents, una AUROC de 0.8669 implica que el model es capaç de discriminar molt be les classes.
 
+# 3
 
+En primer lloc, s'enumeren les conclusions del model lineal. La primera conclusió extreta és tot i que de vegades, per qüestió de càlculs, s'hagi de treure alguna variable del model de regressió, no sempre és adient fer-ho, ja que aquestes variables considerares per a descartar poden tenir una certa importància teòrica.
+
+La segona conclusió del model lineal, és que com el gràfic mostrar en l'apartat 1.5 té forma de campana al voltant del 0, es pot concloure que el model és bo. En observar altres tipus de gràfics, però, s'hi poden veure alguns problemes com per exemple valors atípics (QQ-plot). Si s'observa el gràfic de valors ajustats enfront de residus, es pot observar que hi ha una zona del mapa que concentra una gran quantitat de punts. Un gràfic ideal tindria els punts distribuïts de manera aleatòria i sense que aquests formin cap patró. Per tant, el fet que molts punts es concentrin en una zona indica algun tipus de problema amb el model.
+
+Al moment de fer prediccions, es pot observar, numèricament, que el valor de l'error és menor a la mitjana dels preus dels habitatges, cosa que indica que el model està actuant bé.
+
+Passant al model de regressió logística, es pot concloure que de totes les variables que formen part del model final, no tenen el mateix efecte. Es poden dividir en dues categories: de risc i de protecció. Si s'imagina una balança es pot definir com a variable de risc aquella que posa pes al costat de la balança que afavoreix l'esdeveniment. Per contra, les variables de protecció són aquelles que afegeixen pes al costat de la balança que afavoreix que l'esdeveniment no passi. Per tant, es podria dir, en aquest cas d'estudi, que les variables de risc són aquelles que intervenen perquè l'habitatge tingui un preu més elevat.
+
+També es pot concloure que el model és millor predient els casos en què els habitatges tenen un preu igual o inferior a 500000 euros.
+
+Finalment, es conclou que el model de regressió logística fa bones prediccions atesa l'àrea existent sota la corba de l'apartat 2.7. En aquest tipus de gràfiques com més panxa tingui més àrea hi haurà sota la corba i per tant millors prediccions farà el model.
 
 
 
