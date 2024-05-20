@@ -224,7 +224,8 @@ Com el RMSE està calculat en el preu dels habitatges (variable depenent), es po
 
 # 2 Regressió logística
 
-## 2.1 i 2.2
+## 2.1 Preparació de dades
+## 2.2 Estimació del model de regressió logística
 
 Per evitar repetir el proces de canvi de tipus dos cops un cop fet el split, s'ajunten els dos apartats.
 
@@ -293,7 +294,7 @@ Atès que les variables _waterfront_, _m2_basement_ i _yr_renovated_ tenen un va
 model_final <- model_log
 ```
 
-## 2.3
+## 2.3 Càlcul de les OR (Odss-Ràtio)
 
 ```{r}
 odd_ratio <- exp(coefficients(model_final))
@@ -383,7 +384,7 @@ Es pot observar que el model té una alta especificitat, la qual cosa implica qu
 
 Pel que fa a la sensibilitat del model, el raonament és paregut. És a dir, el model és capaç de predir correctament el 65.36278% dels casos en els quals els habitatges tenen un preu igual o superior a 500000 euros.
 
-## 2.5
+## 2.5 Predicció
 
 ```{r}
 prediccio_individual <- predict(model_final, newdata = training2[3, ], type = "response")
@@ -393,7 +394,7 @@ cat("Probabilitat de que l'habitatge de la tercera fila tingui un preu superior 
 
 S'observa que l'habitatge de la tercera fila de _training2_, té una probabilitat del 81.7%, aproximadament, de tenir un preu superior a 500000 euros.
 
-## 2.6
+## 2.6 Bondat de l'ajust
 
 ### A
 
@@ -439,7 +440,7 @@ cat("Probabilitat associada a l'estadístic de contrast:",probabilitat)
 ```
 Tot i que el valor Chi-quadrat és bastant alt (8374.604), el valor de la probabilitat d'1 suggereix que no hi ha suficient evidència per a poder afirmar amb seguretat que les prediccions que es puguin fer amb el model ajustat són millors que les que es puguin fer amb el model nul (model ajustat solament amb _intercept_).
 
-## 2.7
+## 2.7 Corba ROC
 
 ```{r}
 chooseCRANmirror(ind = 1)
@@ -466,7 +467,7 @@ auc(corba_roc)
 
 Es pot observar que 0.8 <= AUROC <= 0.9, per tant, i segons vist en els materials docents, una AUROC de 0.8669 implica que el model es capaç de discriminar molt be les classes.
 
-# 3
+# 3 Resum executiu. Conclusió de l'anàlisi
 
 En primer lloc, s'enumeren les conclusions del model lineal. La primera conclusió extreta és tot i que de vegades, per qüestió de càlculs, s'hagi de treure alguna variable del model de regressió, no sempre és adient fer-ho, ja que aquestes variables considerares per a descartar poden tenir una certa importància teòrica.
 
